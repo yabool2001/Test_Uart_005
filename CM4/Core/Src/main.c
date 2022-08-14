@@ -21,12 +21,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+#define UART_TX_TIMEOUT		100
+#define RX_BUFF_SIZE		500
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -40,11 +42,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart2; // COM11 via USB
 DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
-
+char                hello[]         = "HELLO Test_Uart_005\n" ;
+HAL_StatusTypeDef   uart_status ;
+uint8_t             rx_buff[RX_BUFF_SIZE] ;
+uint8_t             tx_buff[RX_BUFF_SIZE] ;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,7 +59,7 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+_Bool cpy_buff ( const char* s , uint8_t* d ) ;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -94,7 +99,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  uart_status = HAL_UART_Transmit ( &huart2 , (const uint8_t *) hello , strlen ( hello ) , UART_TX_TIMEOUT ) ;
+  HAL_UARTEx_ReceiveToIdle_DMA ( &huart1 , rx_buff , sizeof ( rx_buff ) ) ;
   /* USER CODE END 2 */
 
   /* Boot CPU2 */
@@ -289,7 +295,45 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart , uint16_t Size )
+{
+    if ( huart->Instance == USART1 ) ;
+    uint16_t l = strlen ( (const char*) rx_buff ) ;
+    uint16_t s = sizeof ( rx_buff ) ;
+    if ( rx_buff[0] != 0x00 )
+    {
+        cpy_buff ( (const char*) rx_buff , tx_buff ) ;
+        rx_buff[0] = 0x00 ;
+        uart_status = HAL_UART_Transmit ( &huart2 , (const uint8_t *) tx_buff ,  strlen ( (char*) tx_buff ) , UART_TX_TIMEOUT ) ;
+    }
 
+    HAL_UARTEx_ReceiveToIdle_DMA ( &huart1 , rx_buff , sizeof ( rx_buff ) ) ;
+}
+
+_Bool cpy_buff ( const char* s , uint8_t* d )
+{
+    uint16_t i = 0 ;
+    const uint16_t l = strlen ( s ) ;
+    if ( l < RX_BUFF_SIZE )
+    {
+        for ( i = 0 ; i < l + 1 ; i++ )
+        {
+        	if ( i == l )
+        	{
+        		d[i] = 0x00 ;
+        	}
+        	else
+        	{
+        		d[i] = s[i] ;
+        	}
+        }
+        return 1 ;
+    }
+    else
+    {
+    	return 0 ;
+    }
+}
 /* USER CODE END 4 */
 
 /**
