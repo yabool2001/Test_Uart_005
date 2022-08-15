@@ -298,11 +298,12 @@ static void MX_GPIO_Init(void)
 void HAL_UARTEx_RxEventCallback ( UART_HandleTypeDef *huart , uint16_t Size )
 {
     if ( huart->Instance == USART1 ) ;
-    uint16_t l = strlen ( (const char*) rx_buff ) ;
-    uint16_t s = sizeof ( rx_buff ) ;
+    //uint16_t l = strlen ( (const char*) rx_buff ) ;
+    //uint16_t s = sizeof ( rx_buff ) ;
     if ( rx_buff[0] != 0x00 )
     {
         cpy_buff ( (const char*) rx_buff , tx_buff ) ;
+    	//strcpy ( (char*) tx_buff , (const char*) rx_buff ) ;
         rx_buff[0] = 0x00 ;
         uart_status = HAL_UART_Transmit ( &huart2 , (const uint8_t *) tx_buff ,  strlen ( (char*) tx_buff ) , UART_TX_TIMEOUT ) ;
     }
